@@ -1,46 +1,36 @@
-/**
- * (C)2024 aks
- * https://github.com/akscf/
- **/
+/*
+ * FreeSWITCH Modular Media Switching Software Library / Soft-Switch Application
+ * Copyright (C) 2005-2014, Anthony Minessale II <anthm@freeswitch.org>
+ *
+ * Version: MPL 1.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * Module Contributor(s):
+ *  Konstantin Alexandrin <akscfx@gmail.com>
+ *
+ *
+ */
 #ifndef MOD_OPENAI_TTS_H
 #define MOD_OPENAI_TTS_H
 
 #include <switch.h>
-#include <switch_stun.h>
 #include <switch_curl.h>
 #include <stdint.h>
 #include <string.h>
 
-#ifndef true
-#define true SWITCH_TRUE
-#endif
-#ifndef false
-#define false SWITCH_FALSE
-#endif
-
-#define VERSION             "1.0-v1_http"
+#define MOD_VERSION         "1.0_http_api_v1"
+#define MOD_CONFIG_NAME     "openai_tts.conf"
 #define FILE_SIZE_MAX       (2*1024*1024)
-
-// #define CURL_DEBUG_REQUESTS 1
-
-typedef struct {
-    switch_mutex_t          *mutex;
-    switch_hash_t           *models;
-    const char              *cache_path;
-    const char              *tmp_path;
-    const char              *opt_encoding;
-    const char              *user_agent;
-    const char              *api_url;
-    const char              *api_key;
-    const char              *proxy;
-    const char              *proxy_credentials;
-    uint32_t                file_size_max;
-    uint32_t                request_timeout;            // seconds
-    uint32_t                connect_timeout;            // seconds
-    uint8_t                 fl_voice_name_as_language;
-    uint8_t                 fl_log_http_error;
-    uint8_t                 fl_cache_enabled;
-} globals_t;
+// #define OAITTS_DEBUG
 
 typedef struct {
     char        *lang;
@@ -66,7 +56,6 @@ typedef struct {
 char *enc2ext(const char *fmt);
 char *escape_dquotes(const char *string);
 
-tts_model_info_t *tts_model_lookup(const char *lang);
 switch_status_t write_file(char *file_name, switch_byte_t *buf, uint32_t buf_len);
 
 #endif

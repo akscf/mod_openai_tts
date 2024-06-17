@@ -1,31 +1,31 @@
-/**
- * (C)2024 aks
- * https://github.com/akscf/
- **/
+/*
+ * FreeSWITCH Modular Media Switching Software Library / Soft-Switch Application
+ * Copyright (C) 2005-2014, Anthony Minessale II <anthm@freeswitch.org>
+ *
+ * Version: MPL 1.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * Module Contributor(s):
+ *  Konstantin Alexandrin <akscfx@gmail.com>
+ *
+ *
+ */
 #include "mod_openai_tts.h"
-
-extern globals_t globals;
-
-tts_model_info_t *tts_model_lookup(const char *lang) {
-    tts_model_info_t *model = NULL;
-
-    if(!lang) { return NULL; }
-
-    switch_mutex_lock(globals.mutex);
-    model = switch_core_hash_find(globals.models, lang);
-    switch_mutex_unlock(globals.mutex);
-
-    return model;
-}
 
 char *enc2ext(const char *fmt) {
     if(strcasecmp(fmt, "mp3") == 0) { return "mp3"; }
     return (char *)fmt;
 }
 
-/*
- * based on switch_utils.c
- */
 char *escape_dquotes(const char *string) {
     size_t string_len = strlen(string);
     size_t i;
