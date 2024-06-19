@@ -8,7 +8,7 @@
         <param name="connect-timeout" value="10" />
         <param name="request-timeout" value="25" />
         <param name="file-size-max" value="2097152" />
-        <param name="log-http-errors" value="false" />
+        <param name="log-http-errors" value="true" />
     <!-- <param name="proxy" value="http://proxy:port" /> -->
     <!-- <param name="proxy-credentials" value="" /> -->
     <!-- <param name="user-agent" value="Mozilla/1.0" /> -->
@@ -18,7 +18,7 @@
         <param name="cache-enable" value="false" />
 
         <!-- service settings -->
-        <param name="encoding-format" value="mp3" />
+        <param name="encoding" value="mp3" />
         <param name="voice-name-as-language" value="true" />
     </settings>
 

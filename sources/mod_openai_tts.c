@@ -18,9 +18,10 @@
  *  Konstantin Alexandrin <akscfx@gmail.com>
  *
  *
- * mod_openai_tts.c -- openai tts service interface
+ * mod_openai_tts.c -- openai text-to-speech service interface
  *
- * Provides an interface to use the OpenAI TTS service in the Freeswitch.
+ * Provides OpenAI TTS service for the Freeswitch.
+ * https://platform.openai.com/docs/guides/text-to-speech
  *
  */
 #include "mod_openai_tts.h"
@@ -28,14 +29,14 @@
 static struct {
     switch_mutex_t          *mutex;
     switch_hash_t           *models;
-    const char              *cache_path;
-    const char              *tmp_path;
-    const char              *opt_encoding;
-    const char              *user_agent;
-    const char              *api_url;
-    const char              *api_key;
-    const char              *proxy;
-    const char              *proxy_credentials;
+    char                    *cache_path;
+    char                    *tmp_path;
+    char                    *opt_encoding;
+    char                    *user_agent;
+    char                    *api_url;
+    char                    *api_key;
+    char                    *proxy;
+    char                    *proxy_credentials;
     uint32_t                file_size_max;
     uint32_t                request_timeout;            // seconds
     uint32_t                connect_timeout;            // seconds
@@ -385,7 +386,7 @@ SWITCH_MODULE_LOAD_FUNCTION(mod_openai_tts_load) {
                 if(val) globals.api_key = switch_core_strdup(pool, val);
             } else if(!strcasecmp(var, "cache-path")) {
                 if(val) globals.cache_path = switch_core_strdup(pool, val);
-            } else if(!strcasecmp(var, "encoding-format")) {
+            } else if(!strcasecmp(var, "encoding")) {
                 if(val) globals.opt_encoding = switch_core_strdup(pool, val);
             } else if(!strcasecmp(var, "user-agent")) {
                 if(val) globals.user_agent = switch_core_strdup(pool, val);

@@ -24,10 +24,8 @@
 
 #include <switch.h>
 #include <switch_curl.h>
-#include <stdint.h>
-#include <string.h>
 
-#define MOD_VERSION         "1.0_http_api_v1"
+#define MOD_VERSION         "1.0_apiv1"
 #define MOD_CONFIG_NAME     "openai_tts.conf"
 #define FILE_SIZE_MAX       (2*1024*1024)
 // #define OAITTS_DEBUG
