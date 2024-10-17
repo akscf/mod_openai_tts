@@ -18,10 +18,11 @@
  *  Konstantin Alexandrin <akscfx@gmail.com>
  *
  *
- * mod_openai_tts.c -- openai text-to-speech service interface
- *
- * Provides OpenAI TTS service for the Freeswitch.
+ * Provides the ability to use OpenAI TTS service in the Freeswitch
  * https://platform.openai.com/docs/guides/text-to-speech
+ *
+ * Development repository:
+ * https://github.com/akscf/mod_openai_tts
  *
  */
 #include "mod_openai_tts.h"
