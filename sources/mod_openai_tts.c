@@ -192,7 +192,6 @@ static switch_status_t curl_perform(tts_ctx_t *tts_ctx, char *text) {
 // ---------------------------------------------------------------------------------------------------------------------------------------------
 static switch_status_t speech_open(switch_speech_handle_t *sh, const char *voice, int samplerate, int channels, switch_speech_flag_t *flags) {
     switch_status_t status = SWITCH_STATUS_SUCCESS;
-    char name_uuid[SWITCH_UUID_FORMATTED_LENGTH + 1] = { 0 };
     tts_ctx_t *tts_ctx = NULL;
 
     tts_ctx = switch_core_alloc(sh->memory_pool, sizeof(tts_ctx_t));
@@ -201,7 +200,7 @@ static switch_status_t speech_open(switch_speech_handle_t *sh, const char *voice
     tts_ctx->language = (globals.fl_voice_name_as_language && voice) ? switch_core_strdup(sh->memory_pool, voice) : NULL;
     tts_ctx->channels = channels;
     tts_ctx->samplerate = samplerate;
-    tts_ctx->dst_file = NULL;
+    tts_ctx->fl_cache_enabled = globals.fl_cache_enabled;
 
     sh->private_info = tts_ctx;
 
@@ -212,16 +211,6 @@ static switch_status_t speech_open(switch_speech_handle_t *sh, const char *voice
     if((status = switch_buffer_create_dynamic(&tts_ctx->curl_recv_buffer, 1024, 8192, globals.file_size_max)) != SWITCH_STATUS_SUCCESS) {
         switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "switch_buffer_create_dynamic() fail\n");
         goto out;
-    }
-
-    if(!globals.fl_cache_enabled) {
-        switch_uuid_str((char *)name_uuid, sizeof(name_uuid));
-        tts_ctx->dst_file = switch_core_sprintf(sh->memory_pool, "%s%sopenai-%s.%s",
-                                                globals.tmp_path,
-                                                SWITCH_PATH_SEPARATOR,
-                                                name_uuid,
-                                                enc2ext(globals.opt_encoding)
-                            );
     }
 
 out:
@@ -240,8 +229,8 @@ static switch_status_t speech_close(switch_speech_handle_t *sh, switch_speech_fl
         switch_buffer_destroy(&tts_ctx->curl_recv_buffer);
     }
 
-    if(tts_ctx->dst_file && !globals.fl_cache_enabled) {
-        unlink(tts_ctx->dst_file);
+    if(!tts_ctx->fl_cache_enabled) {
+        if(tts_ctx->dst_file) unlink(tts_ctx->dst_file);
     }
 
     return SWITCH_STATUS_SUCCESS;
@@ -251,19 +240,18 @@ static switch_status_t speech_feed_tts(switch_speech_handle_t *sh, char *text, s
     tts_ctx_t *tts_ctx = (tts_ctx_t *)sh->private_info;
     switch_status_t status = SWITCH_STATUS_SUCCESS;
     char digest[SWITCH_MD5_DIGEST_STRING_SIZE + 1] = { 0 };
+    char uuid[SWITCH_UUID_FORMATTED_LENGTH + 1] = { 0 };
     const void *ptr = NULL;
     uint32_t recv_len = 0;
 
     assert(tts_ctx != NULL);
 
-    if(!tts_ctx->dst_file) {
+    if(tts_ctx->fl_cache_enabled) {
         switch_md5_string(digest, (void *)text, strlen(text));
-        tts_ctx->dst_file = switch_core_sprintf(sh->memory_pool, "%s%s%s.%s",
-                                                globals.cache_path,
-                                                SWITCH_PATH_SEPARATOR,
-                                                digest,
-                                                enc2ext(globals.opt_encoding)
-                            );
+        tts_ctx->dst_file = switch_core_sprintf(sh->memory_pool, "%s%s%s.%s", globals.cache_path, SWITCH_PATH_SEPARATOR, digest, enc2ext(globals.opt_encoding));
+    } else {
+        switch_uuid_str((char *)uuid, sizeof(uuid));
+        tts_ctx->dst_file = switch_core_sprintf(sh->memory_pool, "%s%s%s.%s", globals.tmp_path, SWITCH_PATH_SEPARATOR, uuid, enc2ext(globals.opt_encoding));
     }
 
     if(switch_file_exists(tts_ctx->dst_file, tts_ctx->pool) == SWITCH_STATUS_SUCCESS) {
@@ -350,6 +338,8 @@ static void speech_text_param_tts(switch_speech_handle_t *sh, char *param, const
         if(val) {  tts_ctx->alt_voice = switch_core_strdup(sh->memory_pool, val); }
     } else  if(strcasecmp(param, "model") == 0) {
         if(val) {  tts_ctx->alt_model = switch_core_strdup(sh->memory_pool, val); }
+    }  else if(strcasecmp(param, "cache") == 0) {
+        if(val) tts_ctx->fl_cache_enabled = switch_true(val);
     }
 }
 
