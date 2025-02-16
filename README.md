@@ -1,5 +1,5 @@
 <p>
-  Provides the ability to use OpenAI TTS service in the Freeswitch. <br>
+  OpenAI TTS service for the Freeswitch. <br>
 </p>
 
 ### Usage example
