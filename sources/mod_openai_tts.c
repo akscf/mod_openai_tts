@@ -18,7 +18,7 @@
  *  Konstantin Alexandrin <akscfx@gmail.com>
  *
  *
- * OpenAI TTS service for the Freeswitch
+ * OpenAI Text-To-Speech service for the Freeswitch
  * https://platform.openai.com/docs/guides/text-to-speech
  *
  * Development repository:

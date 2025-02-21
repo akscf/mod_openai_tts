@@ -1,8 +1,8 @@
 <p>
-  OpenAI TTS service for the Freeswitch. <br>
+  OpenAI Text-To-Speech service for the Freeswitch. <br>
 </p>
 
-### Usage example
+### Dialplan example
 ```XML
 <extension name="tts-test">
     <condition field="destination_number" expression="^(3333)$">
@@ -12,5 +12,12 @@
         <action application="hangup"/>
     </condition>
 </extension>
+```
 
+### mod_quickjs
+```javascript
+session.ttsEngine= 'openai';
+session.language = 'en';
+
+session.speak('Hello world!');
 ```
