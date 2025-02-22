@@ -28,7 +28,8 @@
 #define MOD_VERSION         "1.0.1_api_v1"
 #define MOD_CONFIG_NAME     "openai_tts.conf"
 #define FILE_SIZE_MAX       (2*1024*1024)
-// #define OAITTS_DEBUG
+
+//#define MOD_OAI_TTS_DEBUG
 
 typedef struct {
     char        *lang;
@@ -43,6 +44,7 @@ typedef struct {
     tts_model_info_t        *model_info;
     char                    *curl_send_buffer_ref;
     char                    *language;
+    char                    *api_key;
     char                    *alt_voice;
     char                    *alt_model;
     char                    *dst_file;

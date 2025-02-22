@@ -1,6 +1,5 @@
 <configuration name="openai_tts.conf" description="">
     <settings>
-        <!-- openai api settings -->
         <param name="api-url" value="https://api.openai.com/v1/audio/speech" />
         <param name="api-key" value="---YOUR-API-KEY---" />
 

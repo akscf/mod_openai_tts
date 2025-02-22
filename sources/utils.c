@@ -70,11 +70,11 @@ switch_status_t write_file(char *file_name, switch_byte_t *buf, uint32_t buf_len
         switch_goto_status(SWITCH_STATUS_GENERR, out);
     }
     if((status = switch_file_open(&fd, file_name, (SWITCH_FOPEN_WRITE | SWITCH_FOPEN_TRUNCATE | SWITCH_FOPEN_CREATE), SWITCH_FPROT_OS_DEFAULT, pool)) != SWITCH_STATUS_SUCCESS) {
-        switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "Open fail: %s\n", file_name);
+        switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "Open failed (%s)\n", file_name);
         goto out;
     }
     if((status = switch_file_write(fd, buf, &len)) != SWITCH_STATUS_SUCCESS) {
-        switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "Write fail (%s)\n", file_name);
+        switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "Write failed (%s)\n", file_name);
     }
     switch_file_close(fd);
 out:

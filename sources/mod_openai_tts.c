@@ -99,13 +99,10 @@ static switch_status_t curl_perform(tts_ctx_t *tts_ctx, char *text) {
     if(text) {
         qtext = escape_dquotes(text);
     }
-    pdata = switch_mprintf("{\"model\":\"%s\",\"voice\":\"%s\",\"input\":\"%s\"}\n",
-                           model_local,
-                           voice_local,
-                           qtext ? qtext : ""
-            );
 
-#ifdef OAITTS_DEBUG
+    pdata = switch_mprintf("{\"model\":\"%s\",\"voice\":\"%s\",\"input\":\"%s\"}\n", model_local, voice_local, qtext ? qtext : "" );
+
+#ifdef MOD_OAI_TTS_DEBUG
     switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "CURL: URL=[%s], PDATA=[%s]\n", globals.api_url, pdata);
 #endif
 
@@ -154,8 +151,10 @@ static switch_status_t curl_perform(tts_ctx_t *tts_ctx, char *text) {
         switch_curl_easy_setopt(curl_handle, CURLOPT_PROXY, globals.proxy);
     }
 
-    curl_easy_setopt(curl_handle, CURLOPT_XOAUTH2_BEARER, globals.api_key);
-    curl_easy_setopt(curl_handle, CURLOPT_HTTPAUTH, CURLAUTH_BEARER);
+    if(tts_ctx->api_key) {
+        curl_easy_setopt(curl_handle, CURLOPT_XOAUTH2_BEARER, tts_ctx->api_key);
+        curl_easy_setopt(curl_handle, CURLOPT_HTTPAUTH, CURLAUTH_BEARER);
+    }
 
     switch_curl_easy_setopt(curl_handle, CURLOPT_URL, globals.api_url);
 
@@ -198,6 +197,7 @@ static switch_status_t speech_open(switch_speech_handle_t *sh, const char *voice
     tts_ctx->pool = sh->memory_pool;
     tts_ctx->fhnd = switch_core_alloc(tts_ctx->pool, sizeof(switch_file_handle_t));
     tts_ctx->language = (globals.fl_voice_name_as_language && voice) ? switch_core_strdup(sh->memory_pool, voice) : NULL;
+    tts_ctx->api_key = globals.api_key;
     tts_ctx->channels = channels;
     tts_ctx->samplerate = samplerate;
     tts_ctx->fl_cache_enabled = globals.fl_cache_enabled;
@@ -334,7 +334,9 @@ static void speech_text_param_tts(switch_speech_handle_t *sh, char *param, const
 
     assert(tts_ctx != NULL);
 
-    if(strcasecmp(param, "voice") == 0) {
+    if(strcasecmp(param, "key") == 0) {
+        if(val) {  tts_ctx->api_key = switch_core_strdup(sh->memory_pool, val); }
+    } else if(strcasecmp(param, "voice") == 0) {
         if(val) {  tts_ctx->alt_voice = switch_core_strdup(sh->memory_pool, val); }
     } else  if(strcasecmp(param, "model") == 0) {
         if(val) {  tts_ctx->alt_model = switch_core_strdup(sh->memory_pool, val); }
@@ -431,10 +433,6 @@ SWITCH_MODULE_LOAD_FUNCTION(mod_openai_tts_load) {
 
     if(!globals.api_url) {
         switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "Missing required parameter: api-url\n");
-        switch_goto_status(SWITCH_STATUS_GENERR, out);
-    }
-    if(!globals.api_key) {
-        switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "Missing required parameter: api-key\n");
         switch_goto_status(SWITCH_STATUS_GENERR, out);
     }
 
