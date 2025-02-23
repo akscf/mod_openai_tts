@@ -50,7 +50,7 @@ SWITCH_MODULE_LOAD_FUNCTION(mod_openai_tts_load);
 SWITCH_MODULE_SHUTDOWN_FUNCTION(mod_openai_tts_shutdown);
 SWITCH_MODULE_DEFINITION(mod_openai_tts, mod_openai_tts_load, mod_openai_tts_shutdown, NULL);
 
-static tts_model_info_t *tts_model_lookup(const char *lang) {
+static tts_model_info_t *lookup_model(const char *lang) {
     tts_model_info_t *model = NULL;
 
     if(!lang) { return NULL; }
@@ -91,8 +91,6 @@ static switch_status_t curl_perform(tts_ctx_t *tts_ctx, char *text) {
     switch_curl_slist_t *headers = NULL;
     switch_CURLcode curl_ret = 0;
     long http_resp = 0;
-    const char *voice_local = (tts_ctx->alt_voice ? tts_ctx->alt_voice : tts_ctx->model_info->voice);
-    const char *model_local = (tts_ctx->alt_model ? tts_ctx->alt_model : tts_ctx->model_info->model);
     char *pdata = NULL;
     char *qtext = NULL;
 
@@ -100,10 +98,10 @@ static switch_status_t curl_perform(tts_ctx_t *tts_ctx, char *text) {
         qtext = escape_dquotes(text);
     }
 
-    pdata = switch_mprintf("{\"model\":\"%s\",\"voice\":\"%s\",\"input\":\"%s\"}\n", model_local, voice_local, qtext ? qtext : "" );
+    pdata = switch_mprintf("{\"model\":\"%s\",\"voice\":\"%s\",\"input\":\"%s\"}\n", tts_ctx->model, tts_ctx->voice, qtext ? qtext : "" );
 
 #ifdef MOD_OAI_TTS_DEBUG
-    switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "CURL: URL=[%s], PDATA=[%s]\n", globals.api_url, pdata);
+    switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "URL=[%s], PDATA=[%s]\n", globals.api_url, pdata);
 #endif
 
     tts_ctx->curl_send_buffer_len = strlen(pdata);
@@ -201,12 +199,10 @@ static switch_status_t speech_open(switch_speech_handle_t *sh, const char *voice
     tts_ctx->channels = channels;
     tts_ctx->samplerate = samplerate;
     tts_ctx->fl_cache_enabled = globals.fl_cache_enabled;
+    tts_ctx->model = NULL;
+    tts_ctx->voice = NULL;
 
     sh->private_info = tts_ctx;
-
-    if(tts_ctx->language) {
-        tts_ctx->model_info = tts_model_lookup(tts_ctx->language);
-    }
 
     if((status = switch_buffer_create_dynamic(&tts_ctx->curl_recv_buffer, 1024, 8192, globals.file_size_max)) != SWITCH_STATUS_SUCCESS) {
         switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "switch_buffer_create_dynamic() fail\n");
@@ -255,42 +251,43 @@ static switch_status_t speech_feed_tts(switch_speech_handle_t *sh, char *text, s
     }
 
     if(switch_file_exists(tts_ctx->dst_file, tts_ctx->pool) == SWITCH_STATUS_SUCCESS) {
-        if((status = switch_core_file_open(tts_ctx->fhnd, tts_ctx->dst_file, tts_ctx->channels, tts_ctx->samplerate,
-                                           (SWITCH_FILE_FLAG_READ | SWITCH_FILE_DATA_SHORT), sh->memory_pool)) != SWITCH_STATUS_SUCCESS) {
-
-            switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "Unable to open file: %s\n", tts_ctx->dst_file);
-            status = SWITCH_STATUS_FALSE;
+        if((status = switch_core_file_open(tts_ctx->fhnd, tts_ctx->dst_file, tts_ctx->channels, tts_ctx->samplerate, (SWITCH_FILE_FLAG_READ | SWITCH_FILE_DATA_SHORT), sh->memory_pool)) == SWITCH_STATUS_SUCCESS) {
             goto out;
         }
-    } else {
-        if(tts_ctx->alt_voice == NULL && tts_ctx->model_info == NULL) {
-            switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "voice not determined\n");
-            status = SWITCH_STATUS_FALSE; goto out;
-        }
-        if(tts_ctx->alt_model == NULL && tts_ctx->model_info == NULL) {
-            switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "model not determined\n");
-            status = SWITCH_STATUS_FALSE; goto out;
-        }
+    }
 
-        switch_buffer_zero(tts_ctx->curl_recv_buffer);
-        status = curl_perform(tts_ctx , text);
-        recv_len = switch_buffer_peek_zerocopy(tts_ctx->curl_recv_buffer, &ptr);
-
-        if(status == SWITCH_STATUS_SUCCESS) {
-            if((status = write_file(tts_ctx->dst_file, (switch_byte_t *)ptr, recv_len)) == SWITCH_STATUS_SUCCESS) {
-                if((status = switch_core_file_open(tts_ctx->fhnd, tts_ctx->dst_file, tts_ctx->channels, tts_ctx->samplerate,
-                                                   (SWITCH_FILE_FLAG_READ | SWITCH_FILE_DATA_SHORT), sh->memory_pool)) != SWITCH_STATUS_SUCCESS) {
-
-                    switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "Unable to open file: %s\n", tts_ctx->dst_file);
-                    goto out;
-                }
-            }
+    if(!tts_ctx->voice || !tts_ctx->model) {
+        tts_model_info_t *minf = lookup_model(tts_ctx->language);
+        if(minf) {
+            tts_ctx->voice = minf->voice;
+            tts_ctx->model = minf->model;
         } else {
-            if(globals.fl_log_http_error && recv_len > 0) {
-                switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "Services response: %s\n", (char *)ptr);
-            }
+            switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "Unsupported language (%s)\n", tts_ctx->language);
+            switch_goto_status(SWITCH_STATUS_FALSE, out);
         }
     }
+
+#ifdef MOD_OAI_TTS_DEBUG
+    switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "language=[%s], voice=[%s], model=[%s]\n", tts_ctx->language, tts_ctx->voice, tts_ctx->model);
+#endif
+
+    switch_buffer_zero(tts_ctx->curl_recv_buffer);
+    status = curl_perform(tts_ctx , text);
+    recv_len = switch_buffer_peek_zerocopy(tts_ctx->curl_recv_buffer, &ptr);
+
+    if(status == SWITCH_STATUS_SUCCESS) {
+        if((status = write_file(tts_ctx->dst_file, (switch_byte_t *)ptr, recv_len)) == SWITCH_STATUS_SUCCESS) {
+            if((status = switch_core_file_open(tts_ctx->fhnd, tts_ctx->dst_file, tts_ctx->channels, tts_ctx->samplerate, (SWITCH_FILE_FLAG_READ | SWITCH_FILE_DATA_SHORT), sh->memory_pool)) != SWITCH_STATUS_SUCCESS) {
+                switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "Unable to open file (%s)\n", tts_ctx->dst_file);
+                goto out;
+            }
+        }
+    } else {
+        if(globals.fl_log_http_error && recv_len > 0) {
+            switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "Service response: %s\n", (char *)ptr);
+        }
+    }
+
 out:
     return status;
 }
@@ -336,10 +333,12 @@ static void speech_text_param_tts(switch_speech_handle_t *sh, char *param, const
 
     if(strcasecmp(param, "key") == 0) {
         if(val) {  tts_ctx->api_key = switch_core_strdup(sh->memory_pool, val); }
+    } else if(strcasecmp(param, "lang") == 0) {
+        if(val) { tts_ctx->language = switch_core_strdup(sh->memory_pool, val); }
     } else if(strcasecmp(param, "voice") == 0) {
-        if(val) {  tts_ctx->alt_voice = switch_core_strdup(sh->memory_pool, val); }
+        if(val) {  tts_ctx->voice = switch_core_strdup(sh->memory_pool, val); }
     } else  if(strcasecmp(param, "model") == 0) {
-        if(val) {  tts_ctx->alt_model = switch_core_strdup(sh->memory_pool, val); }
+        if(val) {  tts_ctx->model = switch_core_strdup(sh->memory_pool, val); }
     }  else if(strcasecmp(param, "cache") == 0) {
         if(val) tts_ctx->fl_cache_enabled = switch_true(val);
     }

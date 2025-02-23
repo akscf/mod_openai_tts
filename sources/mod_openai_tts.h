@@ -41,12 +41,11 @@ typedef struct {
     switch_memory_pool_t    *pool;
     switch_file_handle_t    *fhnd;
     switch_buffer_t         *curl_recv_buffer;
-    tts_model_info_t        *model_info;
     char                    *curl_send_buffer_ref;
     char                    *language;
     char                    *api_key;
-    char                    *alt_voice;
-    char                    *alt_model;
+    char                    *voice;
+    char                    *model;
     char                    *dst_file;
     uint32_t                samplerate;
     uint32_t                channels;
