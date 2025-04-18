@@ -251,7 +251,7 @@ static switch_status_t speech_feed_tts(switch_speech_handle_t *sh, char *text, s
     }
 
     if(switch_file_exists(tts_ctx->dst_file, tts_ctx->pool) == SWITCH_STATUS_SUCCESS) {
-        if((status = switch_core_file_open(tts_ctx->fhnd, tts_ctx->dst_file, tts_ctx->channels, tts_ctx->samplerate, (SWITCH_FILE_FLAG_READ | SWITCH_FILE_DATA_SHORT), sh->memory_pool)) == SWITCH_STATUS_SUCCESS) {
+        if((status = switch_core_file_open(tts_ctx->fhnd, tts_ctx->dst_file, 0, tts_ctx->samplerate, (SWITCH_FILE_FLAG_READ | SWITCH_FILE_DATA_SHORT), sh->memory_pool)) == SWITCH_STATUS_SUCCESS) {
             goto out;
         }
     }
@@ -277,7 +277,7 @@ static switch_status_t speech_feed_tts(switch_speech_handle_t *sh, char *text, s
 
     if(status == SWITCH_STATUS_SUCCESS) {
         if((status = write_file(tts_ctx->dst_file, (switch_byte_t *)ptr, recv_len)) == SWITCH_STATUS_SUCCESS) {
-            if((status = switch_core_file_open(tts_ctx->fhnd, tts_ctx->dst_file, tts_ctx->channels, tts_ctx->samplerate, (SWITCH_FILE_FLAG_READ | SWITCH_FILE_DATA_SHORT), sh->memory_pool)) != SWITCH_STATUS_SUCCESS) {
+            if((status = switch_core_file_open(tts_ctx->fhnd, tts_ctx->dst_file, 0, tts_ctx->samplerate, (SWITCH_FILE_FLAG_READ | SWITCH_FILE_DATA_SHORT), sh->memory_pool)) != SWITCH_STATUS_SUCCESS) {
                 switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "Unable to open file (%s)\n", tts_ctx->dst_file);
                 goto out;
             }
