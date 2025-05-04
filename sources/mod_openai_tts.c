@@ -341,6 +341,8 @@ static void speech_text_param_tts(switch_speech_handle_t *sh, char *param, const
         if(val) {  tts_ctx->model = switch_core_strdup(sh->memory_pool, val); }
     }  else if(strcasecmp(param, "cache") == 0) {
         if(val) tts_ctx->fl_cache_enabled = switch_true(val);
+    } else {
+        switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_WARNING, "Unsupported parameter [%s]\n", param);
     }
 }
 
